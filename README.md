@@ -270,6 +270,10 @@ images and the same Compose file, whether X is new or old.
 The same Compose stack runs on a single EC2 instance, so deploying adds to what you learned about
 Compose rather than swapping in a different orchestrator.
 
+> **Status: not currently deployed.** The infrastructure was deployed, tested (including a rollback),
+> and then torn down on 2026-09-26 to stop spending credits. The Deploy workflow is disabled. To bring
+> it back, follow *One-time setup* below, then run `gh workflow enable deploy.yml`.
+
 ```mermaid
 flowchart LR
     ci[GitHub Actions] -->|push images tagged with the commit SHA| ecr[(ECR)]
@@ -346,7 +350,15 @@ npx aws-cdk@2 destroy
 
 This deletes the instance, and with it **all uploaded images and job history**, which live on the
 instance's disk. It also deletes the Elastic IP, the ECR repositories (including their images), and
-the CI user. The `CDKToolkit` bootstrap stack stays; it costs essentially nothing while empty.
+the CI user.
+
+To clean up completely, as we did:
+
+- `gh workflow disable deploy.yml`, so later merges don't try to deploy to infrastructure that's gone.
+- Delete the `production` GitHub environment, which removes the now-useless secrets and variables.
+- Delete the `CDKToolkit` bootstrap stack. Its S3 staging bucket is **kept** when the stack is
+  deleted, so empty it (every object version, since it's versioned) and delete it by hand. It costs
+  almost nothing if you leave it, but a later `cdk bootstrap` needs it gone or reuses it.
 
 ## Tests
 
