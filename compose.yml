@@ -62,6 +62,10 @@ services:
     <<: *backend
     command: ["rq", "worker", "thumbnails", "--url", "${REDIS_URL:-redis://redis:6379/0}"]
     networks: [internal]
+    healthcheck:
+      # Healthy when this container's RQ worker is registered in Redis and its process is alive.
+      test: ["CMD", "python", "-m", "app.worker_health"]
+      <<: *healthcheck-timing
 
   redis:
     restart: unless-stopped
