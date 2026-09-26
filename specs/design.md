@@ -52,7 +52,8 @@ sequenceDiagram
     G->>A: proxy
     A->>A: validate type/size, open with Pillow
     A->>M: write /data/originals/{id}.{ext}
-    A->>R: HSET job:{id} status=queued; ZADD jobs:recent
+    A->>R: HSET job:{id} status=queued
+    A->>R: ZADD jobs:recent
     A->>R: RQ enqueue make_thumbnails(id)
     A-->>B: 202 {id, status: queued}
     W->>R: RQ dequeue
