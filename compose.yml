@@ -1,5 +1,6 @@
 x-backend: &backend
   build: ./backend
+  restart: unless-stopped
   image: thumbnail-factory/backend
   environment:
     REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
@@ -10,10 +11,20 @@ x-backend: &backend
   volumes:
     - media:/data
   depends_on:
-    - redis
+    redis:
+      condition: service_healthy
+
+x-healthcheck-timing: &healthcheck-timing
+  interval: 10s
+  timeout: 3s
+  retries: 3
+  start_period: 10s
+  # Probe every second during start_period so dependents aren't held up by the 10s interval.
+  start_interval: 1s
 
 services:
   gateway:
+    restart: unless-stopped
     build: ./gateway
     image: thumbnail-factory/gateway
     ports:
@@ -24,10 +35,13 @@ services:
       - media:/data:ro
     networks: [public]
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
 
   frontend:
+    restart: unless-stopped
     build:
       context: ./frontend
       target: runtime
@@ -38,6 +52,11 @@ services:
     <<: *backend
     # The only service on both networks: the sole path from the public tier to Redis.
     networks: [public, internal]
+    healthcheck:
+      # /api/health pings Redis, so healthy means the whole API path works. Python instead of
+      # curl/wget so the check doesn't depend on which tools the base image ships.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=2)"]
+      <<: *healthcheck-timing
 
   worker:
     <<: *backend
@@ -45,11 +64,15 @@ services:
     networks: [internal]
 
   redis:
+    restart: unless-stopped
     image: public.ecr.aws/docker/library/redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data
     networks: [internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      <<: *healthcheck-timing
 
 networks:
   public:
