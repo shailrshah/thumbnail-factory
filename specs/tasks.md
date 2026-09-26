@@ -312,21 +312,21 @@ Management console.
 - [x] **8.6 Deploy** — `cdk bootstrap` (once) and `cdk deploy`.
   - Done when: the instance appears in the SSM Fleet Manager as online, and
     `aws ssm send-command ... "docker version && docker compose version"` succeeds.
-- [ ] **8.7 CI credentials** 🧑 (I'll give exact commands):
+- [x] **8.7 CI credentials** 🧑 (I'll give exact commands):
   - `aws iam create-access-key --user-name thumbnail-factory-ci`
   - Create a GitHub environment `production` limited to `main`. Add the two secrets and the variables
     `AWS_REGION`, `ECR_REGISTRY`, `INSTANCE_ID`.
-- [ ] **8.8 Commit & push**
+- [x] **8.8 Commit & push**
 
 ---
 
 ## Milestone 9 — Continuous deployment
 
-- [ ] **9.1 `compose.prod.yml`** [D3] — per design §6.3.
-- [ ] **9.2 `scripts/deploy_remote.sh`** — per design §9.2.
-- [ ] **9.3 `deploy.yml`** [D4, D5, D8, CI6] — triggers, `production` environment, build/push (skipped on
+- [x] **9.1 `compose.prod.yml`** [D3] — per design §6.3.
+- [x] **9.2 `scripts/deploy_remote.sh`** — per design §9.2.
+- [x] **9.3 `deploy.yml`** [D4, D5, D8, CI6] — triggers, `production` environment, build/push (skipped on
   rollback), SSM send-command with inline files, invocation polling, and a post-deploy health check.
-- [ ] **9.4 First deploy** — merge to `main`.
+- [x] **9.4 First deploy** — merge to `main`.
   - Done when: `http://<PublicUrl>` serves the app, and an upload completes end-to-end on EC2.
 - [ ] **9.5 Experiment 8 (rollback)** — `workflow_dispatch` with a previous SHA; confirm the old version is served.
 - [ ] **9.6 README: deployment section** [D9] — architecture, one-time setup, cost estimate

@@ -76,3 +76,13 @@ GitHub-hosted runner, linux/amd64, `docker/bake-action` with per-image GHA cache
 
 The warm run served 15 build steps from cache; most of the remaining time is loading images into the
 runner's Docker. This was also the first x86_64 build of the Alpine images; no changes were needed.
+
+## First deploy (task 9.4)
+
+- First attempt failed in *Build and push images* with `429 Too Many Requests` from public.ecr.aws
+  (unauthenticated pulls are capped at 1/s per IP; hosted runners share IPs). Fixed by logging in to ECR
+  Public in the deploy job (10/s), which already has AWS credentials.
+- Second attempt (`cfb5ad0`) succeeded. Step timings:
+  - Build and push images: 14s
+  - Deploy to instance via SSM: 20s
+- `BASE_URL=http://18.116.145.80 scripts/smoke_test.sh` passed against the instance.
