@@ -82,6 +82,35 @@ All routes are served under `/api` by `backend`.
   FastAPI auto-reload, Vite dev server with HMR proxied through `gateway`.
 - IR14. `docker compose -f compose.yml up` runs the production-like setup without overrides.
 
+## Continuous integration (GitHub Actions)
+
+- CI1. Runs on every pull request and every push to `main`.
+- CI2. Lint: `ruff` for Python, `eslint` for the frontend.
+- CI3. Unit tests: `pytest` for backend and worker.
+- CI4. Build all images with Buildx, using the GitHub Actions cache so unchanged layers are reused.
+- CI5. Integration smoke test against the real Compose stack: `docker compose -f compose.yml up -d --wait`,
+  upload a sample image through `gateway`, poll until `done`, fetch a thumbnail via `/media`, then tear down.
+  Dump `docker compose logs` on failure.
+- CI6. `main` is protected in the sense that deployment only runs after CI passes.
+
+## Deployment (AWS)
+
+Goal: run the same Compose stack in the cloud, so the deployment reinforces Compose rather
+than replacing it with a different orchestrator.
+
+- D1. Target: a single EC2 instance running Docker and Docker Compose, in the project's selected Region.
+- D2. Images are pushed to Amazon ECR, one repository per built image, tagged with the git SHA.
+  Lifecycle policy keeps the most recent 10 tags.
+- D3. `compose.prod.yml` references ECR images by `IMAGE_TAG` instead of building locally; no bind mounts, no dev overrides.
+- D4. GitHub Actions authenticates to AWS via OIDC and an IAM role scoped to this repo's `main` branch.
+  No long-lived AWS keys in GitHub secrets.
+- D5. Deploys run through SSM Run Command (pull images, `docker compose up -d`). No SSH; port 22 closed.
+- D6. Security group allows inbound HTTP (port 80) only. The instance profile grants only ECR pull and SSM.
+- D7. All AWS resources are defined as code with AWS CDK (Python) under `infra/`, deployable and
+  destroyable with one command each.
+- D8. Rollback = re-run the deploy workflow with a previous SHA.
+- D9. README documents expected monthly cost and the teardown command.
+
 ## Learning experiments
 
 The README should walk through these, each with the command to run and what to observe:
@@ -92,11 +121,14 @@ The README should walk through these, each with the command to run and what to o
 4. Try to reach Redis from `gateway` (`docker compose exec gateway ...`); see network isolation.
 5. Inspect image sizes before/after multi-stage builds (`docker image ls`).
 6. Break the backend healthcheck; watch dependents wait.
+7. Open a PR that breaks the worker; watch the CI smoke test catch it.
+8. Deploy an older SHA to the EC2 instance; confirm the rollback.
 
 ## Non-goals
 
 - Authentication, multi-user support
-- Cloud deployment, TLS, Kubernetes
+- TLS, custom domain, Kubernetes, ECS
+- Multiple environments (staging/prod), multi-Region, high availability
 - A relational database (Redis is enough for job state; Postgres may be a later extension)
 - Automated test coverage beyond basic API and worker tests
 
@@ -108,3 +140,6 @@ The README should walk through these, each with the command to run and what to o
 4. Dev override with hot reload.
 5. Hardening: healthchecks, non-root, restart policies, networks split.
 6. README with learning experiments.
+7. CI: lint, tests, image builds, Compose smoke test.
+8. AWS infrastructure via CDK (ECR, EC2, IAM/OIDC, SSM).
+9. CD: build, push to ECR, and deploy on merge to `main`.
