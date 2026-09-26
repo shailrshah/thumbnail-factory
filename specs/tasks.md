@@ -272,11 +272,11 @@ Each task changes one thing, so you can observe its effect.
 
 ## Milestone 6 — README and learning experiments
 
-- [ ] **6.1 README** — what the project is, the architecture diagram (from design §1), quick start,
+- [x] **6.1 README** — what the project is, the architecture diagram (from design §1), quick start,
   dev vs. prod-like modes, service overview, and useful commands (`logs -f`, `exec`, `redis-cli`, `ps`).
-- [ ] **6.2 Experiments 1–6** — one section each with the command, what to observe, and why. Run each one
+- [x] **6.2 Experiments 1–6** — one section each with the command, what to observe, and why. Run each one
   and confirm the README's description matches what actually happens (especially #2, the worker-lost path).
-- [ ] **6.3 Commit & push**
+- [x] **6.3 Commit & push**
 
 ---
 
