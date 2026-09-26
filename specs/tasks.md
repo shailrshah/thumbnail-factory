@@ -133,45 +133,45 @@ worktrees) rather than learning each step hands-on.
 
 Goal: submit a job with `curl` and watch a worker produce thumbnails. No gateway or frontend yet.
 
-- [ ] **1.1 Backend project skeleton**
+- [x] **1.1 Backend project skeleton**
   - `backend/pyproject.toml` with deps: `fastapi`, `uvicorn[standard]`, `python-multipart`, `redis`, `rq`,
     `pillow`; dev deps: `pytest`, `fakeredis`, `httpx`, `ruff`.
   - `app/config.py`: settings read from env with the defaults in design §7.
   - Done when: `uv sync` succeeds and `ruff check` passes.
 
-- [ ] **1.2 Imaging** [FR5]
+- [x] **1.2 Imaging** [FR5]
   - `app/imaging.py`: `make_thumbnails(src_path, dest_dir, widths) -> list[{width, path}]`. Apply EXIF
     orientation, preserve aspect ratio, never upscale, output WebP.
   - Tests: output widths, aspect ratio, no upscaling of small images, EXIF-rotated input, PNG with alpha.
   - Done when: `pytest tests/test_imaging.py` passes.
 
-- [ ] **1.3 Job store** [FR4, FR6]
+- [x] **1.3 Job store** [FR4, FR6]
   - `app/jobs.py`: `create`, `get`, `list_recent(limit=50)`, `update`, following the Redis layout in
     design §4 (`job:{id}` hash, `jobs:recent` sorted set trimmed to 500).
   - Tests against `fakeredis`.
   - Done when: tests pass.
 
-- [ ] **1.4 Worker task** [FR5–FR8]
+- [x] **1.4 Worker task** [FR5–FR8]
   - `app/tasks.py`: `make_thumbnails(job_id)` implementing the status transitions in design §3.4,
     including `WORKER_DELAY_SECONDS` and `worker=$HOSTNAME`. On failure, record `failed` + error, then re-raise.
   - Tests: success path and failure path (corrupt image), run synchronously.
   - Done when: tests pass.
 
-- [ ] **1.5 API** [FR1–FR4, API table]
+- [x] **1.5 API** [FR1–FR4, API table]
   - `app/main.py`: `POST /api/jobs`, `GET /api/jobs`, `GET /api/jobs/{id}`, `GET /api/health` as in
     design §3.3, including the "worker lost" reconciliation from design §4.
   - Tests with `TestClient` + `fakeredis`: valid upload → 202; wrong type → 400; oversized → 413;
     non-image bytes with an image content type → 400; unknown ID → 404; health with Redis down → 503.
   - Done when: tests pass.
 
-- [ ] **1.6 Backend Dockerfile (single-stage, on purpose)**
+- [x] **1.6 Backend Dockerfile (single-stage, on purpose)**
   - `FROM public.ecr.aws/docker/library/python:3.12-slim`, install deps, copy `app/`, default command
     `uvicorn app.main:app --host 0.0.0.0 --port 8000`. Runs as root for now.
   - `.dockerignore`.
   - 📏 Record `docker image ls` size for the backend image in `specs/measurements.md`.
   - Done when: `docker build ./backend` succeeds.
 
-- [ ] **1.7 `compose.yml` v1**
+- [x] **1.7 `compose.yml` v1**
   - Services: `redis`, `backend` (publish `8000:8000` temporarily, for curl), `worker` (same build,
     `rq worker thumbnails` command). Default network only. `media` and `redis-data` volumes.
   - `.env.example` with all variables from design §7.
@@ -183,7 +183,7 @@ Goal: submit a job with `curl` and watch a worker produce thumbnails. No gateway
     docker compose exec worker ls /data/thumbs/<id>                         # → 128/256/512.webp
     ```
 
-- [ ] **1.8 Commit & push** — "Milestone 1: backend, worker, Redis under Compose"
+- [x] **1.8 Commit & push** — "Milestone 1: backend, worker, Redis under Compose"
 
 ---
 
