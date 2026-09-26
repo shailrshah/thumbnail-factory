@@ -324,12 +324,14 @@ flowchart LR
   - `workflow_dispatch` with an `image_tag` input, for rollback (D8).
 - Runs in the `production` GitHub environment (only `main` allowed), which holds:
   - secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
-  - variables: `AWS_REGION`, `ECR_REGISTRY`, `INSTANCE_ID`
+  - variables: `AWS_REGION`, `ECR_REGISTRY`, `INSTANCE_ID`, `PUBLIC_URL`
 - Steps:
   1. `aws-actions/configure-aws-credentials` with the secrets (D4).
   2. `aws-actions/amazon-ecr-login`.
   3. Build and push `backend`, `frontend`, `gateway` tagged with the commit SHA. This step is skipped on
-     rollback, because those images already exist.
+     rollback, because those images already exist. A following step checks all three tags exist in ECR
+     (via `batch-get-image`, which the CI user's pull grant allows), so a mistyped or expired rollback
+     SHA fails before touching the instance.
   4. `aws ssm send-command` with `AWS-RunShellScript`. The command payload carries `compose.prod.yml`
      (base64) plus `deploy_remote.sh`, so the Compose file that runs always matches the deployed SHA.
      The instance needs no git checkout.
