@@ -61,6 +61,16 @@ jobs:
             frontend.cache-to=type=gha,scope=frontend,mode=max
             gateway.cache-from=type=gha,scope=gateway
             gateway.cache-to=type=gha,scope=gateway,mode=max
+      # ECR Public allows 1 unauthenticated pull/s per IP (not adjustable), and hosted runners
+      # share IPs, so pulls can hit "toomanyrequests" from other people's jobs. Retry with backoff.
+      - name: Pull Redis
+        run: |
+          for attempt in 1 2 3 4 5; do
+            docker compose -f compose.yml pull redis && exit 0
+            echo "Pull failed (attempt $attempt); retrying in $((attempt * 5))s"
+            sleep $((attempt * 5))
+          done
+          exit 1
       - name: Start stack
         run: docker compose -f compose.yml up -d --wait --wait-timeout 120 --no-build
       - name: Smoke test

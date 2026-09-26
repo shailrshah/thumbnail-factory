@@ -228,8 +228,14 @@ Thumbnail URL = `/media/thumbs/{id}/{width}.webp`, served by the gateway from `/
 | `redis` | `redis:7-alpine` | Official image, not built. |
 
 All base images are pulled from the ECR Public mirror of Docker Official Images
-(`public.ecr.aws/docker/library/...`, `public.ecr.aws/nginx/nginx-unprivileged`). That avoids Docker
-Hub's anonymous pull rate limits, which CI runners and the EC2 instance would otherwise share.
+(`public.ecr.aws/docker/library/...`, `public.ecr.aws/nginx/nginx-unprivileged`).
+
+ECR Public has rate limits too: unauthenticated pulls are capped at 1 per second per IP (not
+adjustable), authenticated at 10 per second, and pulls from EC2 at 10 per second. GitHub-hosted
+runners share IPs, so CI can be throttled (`toomanyrequests: Rate exceeded`) by other people's
+jobs. CI retries the Redis pull with backoff. Authenticating would raise the limit, but it would
+put AWS credentials in pull-request workflows, which D4 deliberately avoids. The EC2 instance pulls
+at the higher EC2 rate.
 
 A `.dockerignore` in each build context excludes `node_modules`, `.venv`, tests, and caches.
 
@@ -384,6 +390,6 @@ project.
 | Deployment target | EC2 + Compose | ECS/Fargate | Keeps Compose as the deployment artifact; see requirements. |
 | CI → AWS auth | Scoped IAM user | OIDC | OIDC providers are denied by the project's SCP (D4). |
 | Shipping the Compose file | Inline in SSM command | git clone on instance; S3 | No repo credentials on the instance; the file is pinned to the deployed SHA. |
-| Base image registry | ECR Public mirror | Docker Hub | Avoids anonymous pull rate limits. |
+| Base image registry | ECR Public mirror | Docker Hub | Official images without a Docker Hub account. It is *also* rate-limited (1 unauthenticated pull/s per IP), so CI retries pulls; see §5. |
 | Backend base image | `python:3.12-alpine` | `python:3.12-slim` (Debian) | All dependencies ship musllinux wheels, so there's no compiling; the full test suite passes on Alpine. The OS layer is 9 MB versus 115 MB (see measurements.md). The cost: musl is less common than glibc, so a future dependency without a musl wheel would need build tools added. |
 | Architecture | x86_64 | Graviton (arm64) | No multi-arch builds in CI; `t4g` is a later cost-saving option. |
