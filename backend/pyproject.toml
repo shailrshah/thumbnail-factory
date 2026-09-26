@@ -1,0 +1,31 @@
+[project]
+name = "thumbnail-factory-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.141.1",
+    "pillow>=12.3.0",
+    "python-multipart>=0.0.32",
+    "redis>=8.1.0",
+    "rq>=2.12.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "fakeredis>=2.38.0",
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.9",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
