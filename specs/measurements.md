@@ -64,3 +64,15 @@ the jobs were split 2 per worker across 3 distinct worker hostnames, in two wave
 `docker compose exec worker kill 1` makes RQ do a warm shutdown and exit with code **0**. With no restart
 policy the worker stays `Exited (0)`. `on-failure` would not restart it either, because the exit code is 0;
 `unless-stopped` brings the same container back (restart count 1).
+
+## CI image builds (task 7.3)
+
+GitHub-hosted runner, linux/amd64, `docker/bake-action` with per-image GHA cache scopes (`mode=max`):
+
+| Run | Build images | Start stack (`up --wait`) | Smoke test |
+|-----|-------------:|--------------------------:|-----------:|
+| 1 (cold cache) | 21 s | 7 s | 3 s |
+| 2 (warm cache) | 11 s | 8 s | 3 s |
+
+The warm run served 15 build steps from cache; most of the remaining time is loading images into the
+runner's Docker. This was also the first x86_64 build of the Alpine images; no changes were needed.
