@@ -282,8 +282,8 @@ Each task changes one thing, so you can observe its effect.
 
 ## Milestone 7 — CI
 
-- [ ] **7.1 `ci.yml`: backend job** [CI1–CI3] — uv, `ruff check`, `pytest`.
-- [ ] **7.2 `ci.yml`: frontend job** [CI2] — `npm ci`, oxlint, `tsc --noEmit`, build.
+- [x] **7.1 `ci.yml`: backend job** [CI1–CI3] — uv, `ruff check`, `pytest`.
+- [x] **7.2 `ci.yml`: frontend job** [CI2] — `npm ci`, oxlint, `tsc --noEmit`, build.
 - [ ] **7.3 `ci.yml`: smoke job** [CI4, CI5] — `docker/bake-action` with the GHA cache, then
   `compose up -d --wait`, `smoke_test.sh`, and logs on failure.
   - Done when: the workflow is green on a PR. A second run shows cache hits (much shorter build step).
