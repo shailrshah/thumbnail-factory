@@ -13,11 +13,18 @@ x-backend: &backend
     - redis
 
 services:
+  gateway:
+    build: ./gateway
+    image: thumbnail-factory/gateway
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    volumes:
+      - media:/data:ro
+    depends_on:
+      - backend
+
   backend:
     <<: *backend
-    # Published only until the gateway exists (milestone 2).
-    ports:
-      - "8000:8000"
 
   worker:
     <<: *backend
