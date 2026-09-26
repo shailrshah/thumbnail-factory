@@ -113,6 +113,15 @@ class ThumbnailFactoryStack(cdk.Stack):
         ci_user.add_to_policy(
             iam.PolicyStatement(actions=["ssm:GetCommandInvocation"], resources=["*"])
         )
+        # Authenticated ECR Public pulls (10/s instead of 1/s per IP). Hosted runners share IPs,
+        # so unauthenticated base-image pulls in the deploy build get throttled. Neither action
+        # supports resource-level permissions.
+        ci_user.add_to_policy(
+            iam.PolicyStatement(
+                actions=["ecr-public:GetAuthorizationToken", "sts:GetServiceBearerToken"],
+                resources=["*"],
+            )
+        )
 
         cdk.CfnOutput(self, "PublicUrl", value=f"http://{eip.attr_public_ip}")
         cdk.CfnOutput(self, "InstanceId", value=instance.instance_id)

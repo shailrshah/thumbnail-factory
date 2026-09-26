@@ -44,6 +44,14 @@ jobs:
 
       - uses: aws-actions/amazon-ecr-login@v2
 
+      # Base images come from ECR Public, which throttles unauthenticated pulls to 1/s per IP;
+      # hosted runners share IPs. Authenticated pulls get 10/s. ECR Public's API is us-east-1 only.
+      - name: Log in to ECR Public
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          aws ecr-public get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin public.ecr.aws
+
       - if: github.event_name != 'workflow_dispatch'
         uses: docker/setup-buildx-action@v3
 
