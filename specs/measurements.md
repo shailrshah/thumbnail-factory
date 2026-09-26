@@ -13,10 +13,11 @@ Measured on linux/arm64 (Apple Silicon); x86_64 sizes will differ slightly.
 
 | Stage | Build | Unpacked | Download | Notes |
 |-------|-------|---------:|---------:|-------|
-| Milestone 1 (task 1.6) | single-stage | 299 MB | 104 MB | See breakdown below |
-| Milestone 5 (task 5.2) | multi-stage | _tbd_ | _tbd_ | |
+| Milestone 1 (task 1.6) | single-stage, `-slim` (Debian) | 299 MB | 104 MB | See breakdown below |
+| Alpine switch | single-stage, `-alpine` | 200 MB | 84 MB | OS layer 115 MB → 9 MB; the leftover `uv` layer is now 82 MB (41%) |
+| Milestone 5 (task 5.2) | multi-stage, `-alpine` | _tbd_ | _tbd_ | |
 
-### Milestone 1 breakdown
+### Milestone 1 breakdown (`-slim`)
 
 | Layer | Size | Needed at runtime? |
 |-------|-----:|--------------------|

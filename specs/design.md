@@ -222,7 +222,7 @@ Thumbnail URL = `/media/thumbs/{id}/{width}.webp`, served by the gateway from `/
 
 | Image | Base | Build notes |
 |-------|------|-------------|
-| `backend` | `python:3.12-slim` | Builder stage installs deps with `uv` into `/opt/venv`; final stage copies only the venv and `app/`. Runs as `app` (UID 10001). Creates `/data` owned by `app` so a fresh named volume inherits that ownership. |
+| `backend` | `python:3.12-alpine` | Builder stage installs deps with `uv` into `/opt/venv`; final stage copies only the venv and `app/`. Runs as `app` (UID 10001). Creates `/data` owned by `app` so a fresh named volume inherits that ownership. |
 | `frontend` | `node:22-alpine` → `nginx-unprivileged:alpine` | See §3.2. |
 | `gateway` | `nginx-unprivileged:alpine` | Copies the config template only. |
 | `redis` | `redis:7-alpine` | Official image, not built. |
@@ -246,8 +246,8 @@ A `.dockerignore` in each build context excludes `node_modules`, `.venv`, tests,
 | redis | `redis:7-alpine` | internal | `redis-data:/data` | — | healthcheck `redis-cli ping` |
 
 - `restart: unless-stopped` on every service (IR9).
-- The backend healthcheck uses `python -c "urllib.request.urlopen(...)"`, because the slim image has no
-  `curl`.
+- The backend healthcheck uses `python -c "urllib.request.urlopen(...)"`, so it doesn't depend on which
+  HTTP tools the base image happens to ship.
 - The worker has no `container_name` and no published ports, so `--scale worker=3` works (IR8).
 - Config comes from `.env`, with defaults inline (`${WORKER_DELAY_SECONDS:-2}`) so the stack also runs
   without a `.env` file (IR11).
@@ -380,4 +380,5 @@ project.
 | CI → AWS auth | Scoped IAM user | OIDC | OIDC providers are denied by the project's SCP (D4). |
 | Shipping the Compose file | Inline in SSM command | git clone on instance; S3 | No repo credentials on the instance; the file is pinned to the deployed SHA. |
 | Base image registry | ECR Public mirror | Docker Hub | Avoids anonymous pull rate limits. |
+| Backend base image | `python:3.12-alpine` | `python:3.12-slim` (Debian) | All dependencies ship musllinux wheels, so there's no compiling; the full test suite passes on Alpine. The OS layer is 9 MB versus 115 MB (see measurements.md). The cost: musl is less common than glibc, so a future dependency without a musl wheel would need build tools added. |
 | Architecture | x86_64 | Graviton (arm64) | No multi-arch builds in CI; `t4g` is a later cost-saving option. |

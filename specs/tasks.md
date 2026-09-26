@@ -165,7 +165,7 @@ Goal: submit a job with `curl` and watch a worker produce thumbnails. No gateway
   - Done when: tests pass.
 
 - [x] **1.6 Backend Dockerfile (single-stage, on purpose)**
-  - `FROM public.ecr.aws/docker/library/python:3.12-slim`, install deps, copy `app/`, default command
+  - `FROM public.ecr.aws/docker/library/python:3.12-alpine`, install deps, copy `app/`, default command
     `uvicorn app.main:app --host 0.0.0.0 --port 8000`. Runs as root for now.
   - `.dockerignore`.
   - 📏 Record `docker image ls` size for the backend image in `specs/measurements.md`.
@@ -250,9 +250,10 @@ Each task changes one thing, so you can observe its effect.
 - [ ] **5.1 Split networks** [IR3] — `public` (gateway, frontend, backend) and `internal` (backend, worker, redis).
   - Done when: `docker compose exec gateway nc -zv redis 6379` fails (name does not resolve), and the
     smoke test still passes.
-- [ ] **5.2 Multi-stage backend image** [IR10] — builder stage with `uv` → `/opt/venv`; slim runtime stage.
+- [ ] **5.2 Multi-stage backend image** [IR10] — builder stage with `uv` → `/opt/venv`; minimal Alpine runtime stage.
   - 📏 Record the new image size next to the milestone 1 size in `specs/measurements.md`.
-- [ ] **5.3 Non-root** [IR12] — `app` user (UID 10001) in the backend image; `/data` created and owned
+- [ ] **5.3 Non-root** [IR12] — `app` user (UID 10001) in the backend image (Alpine: BusyBox
+  `addgroup -S`/`adduser -S -D -H`, not Debian's `useradd`); `/data` created and owned
   by `app` in the image.
   - Done when: `docker compose exec backend id` shows UID 10001. On a fresh volume
     (`docker compose down -v && up`), uploads still work. Note in `measurements.md` what happens if you
