@@ -11,6 +11,124 @@ Legend: 🧑 = a step you (the human) must do, because it needs your GitHub/AWS 
 
 ---
 
+## Parallelization plan
+
+The milestone order above is the **sequential** path. The work can also run in parallel lanes,
+because several parts only depend on agreed interfaces, not on each other's code.
+
+### Contracts to freeze first
+
+Lanes can work independently only if these don't change underneath them. They are already defined in
+design.md; changing one after the lanes start means a coordinated change across lanes.
+
+| Contract | Defined in | Consumed by |
+|----------|-----------|-------------|
+| API routes, status codes, and job JSON | design §3.3 | backend, frontend, smoke test |
+| URL layout (`/api`, `/media/thumbs/{id}/{w}.webp`, `/`) | design §3.1, §4 | gateway, frontend, backend |
+| Compose service names and ports (`backend:8000`, `frontend:8080`/`5173`, `redis:6379`) | design §6.1 | gateway, compose files, CI |
+| Image names (`thumbnail-factory/{backend,frontend,gateway}`) | design §6.3, §10 | CDK, deploy workflow |
+| Env vars | design §7 | all |
+
+### Dependency graph
+
+```mermaid
+flowchart LR
+    C[Contracts frozen]
+
+    subgraph A [Lane A · backend]
+        A11[1.1 skeleton] --> A12[1.2 imaging] & A13[1.3 job store]
+        A12 & A13 --> A14[1.4 worker task]
+        A13 --> A15[1.5 API]
+        A11 --> A16[1.6 Dockerfile]
+    end
+
+    subgraph B [Lane B · frontend]
+        B1[3.1–3.3 app vs. mock API] --> B2[3.4 Dockerfile]
+    end
+
+    subgraph G [Lane C · gateway + smoke]
+        G1[2.1 gateway image] 
+        G2[2.3 smoke script]
+    end
+
+    subgraph I [Lane D · infra]
+        I1[8.1–8.5 CDK, synth only]
+    end
+
+    C --> A11 & B1 & G1 & G2 & I1
+
+    A14 & A15 & A16 --> S1{{Sync 1<br/>1.7 + 2.2<br/>stack via gateway}}
+    G1 & G2 --> S1
+    S1 --> S2{{Sync 2<br/>3.5 frontend wired}}
+    B2 --> S2
+    S2 --> M4[M4 dev mode] --> M5[M5 hardening] --> M6[M6 README]
+    A12 -.tests exist.-> E1[7.1 CI backend]
+    B1 -.-> E2[7.2 CI frontend]
+    S1 --> E3[7.3 CI smoke]
+    M5 & E3 & I1 --> S3{{Sync 3<br/>8.6 cdk deploy<br/>M9 CD}}
+```
+
+### Lanes
+
+| Lane | Tasks | Can start | Blocked until | Owns (only this lane edits) |
+|------|-------|-----------|---------------|------------------------------|
+| **A · backend** | 1.1–1.6, later 5.2, 5.3 | immediately | — | `backend/` |
+| **B · frontend** | 3.1–3.4 | immediately; develop against a mock API (Vite dev server `proxy` to a small fixture server, or hardcoded fixtures matching the job JSON) | — | `frontend/` |
+| **C · gateway + smoke** | 2.1, 2.3 | immediately | Sync 1 to verify against the real stack | `gateway/`, `scripts/` |
+| **D · infra** | 8.1–8.5 | immediately | Sync 3 for `cdk deploy` (see cost note) | `infra/` |
+| **E · CI** | 7.1 → 7.2 → 7.3 | once 1.2 has tests | 7.3 needs Sync 1 | `.github/workflows/` |
+| **Integration** | 1.7, 2.2, 3.5, M4, 5.1, 5.4–5.6, M6, M9 | at sync points | — | `compose*.yml`, `.env.example`, `README.md` |
+
+### Sync points
+
+1. **Sync 1: stack runs through the gateway.** Merge lanes A and C; do 1.7 and 2.2. Gate:
+   `smoke_test.sh` passes.
+2. **Sync 2: frontend wired in.** Merge lane B; do 3.5. Gate: manual browser check (3.5's "Done when").
+3. **Sync 3: deploy.** Requires M5 (hardened images are what get shipped), 7.3 green, and lane D synth
+   clean. Then run 8.6 and M9.
+
+Milestones 4 → 5 → 6 stay sequential. They are small, and almost every task in them edits
+`compose.yml`, so parallelizing them would mostly create merge conflicts.
+
+### Conflict hotspots
+
+- **`compose.yml`** is touched by 1.7, 2.2, 3.5, M4, and most of M5. Only the integration step edits it,
+  and always at a sync point.
+- **`backend/Dockerfile`** is touched by 1.6, 5.2, and 5.3. It stays in lane A, done in order.
+- **`README.md`** is written in M6. Lanes put notes in their PR descriptions instead of editing it.
+
+### Critical path
+
+`1.1 → 1.3 → 1.5 → Sync 1 → Sync 2 → M4 → M5 → Sync 3 → M9`
+
+Lanes B, C, D, and E are all off the critical path, so parallelizing them shortens the calendar by
+roughly the length of M3 + M7 + M8. The backend lane and the sequential hardening work set the pace.
+
+### Mechanics
+
+- One git branch (and worktree) per lane: `lane/backend`, `lane/frontend`, `lane/gateway`,
+  `lane/infra`, `lane/ci`. Lanes push their branches freely; `main` only changes at sync points.
+- Before milestone 7's branch protection exists, merge lanes locally at sync points and push `main`.
+  After it exists, each lane opens a PR.
+- **Cost note (lane D):** `cdk deploy` starts the instance billing (~$0.65/day from credits). Keep lane D at
+  `cdk synth` until Sync 3, unless you want to explore the instance early.
+
+### Recommendation
+
+This is a solo learning project, so full five-lane parallelism isn't the best trade-off. Building the
+pieces in order is part of what you're learning, and five branches mean a lot of merge bookkeeping.
+
+A good middle ground is **two lanes**:
+
+1. **App lane** (sequential milestones 1–6) with CI jobs 7.1/7.2 added as soon as tests exist, so every
+   later change is checked.
+2. **Infra lane** (8.1–8.5 at synth level), which shares no files with the app.
+
+Use full parallelism if the goal is speed (for example, delegating lanes to Claude subagents in separate
+worktrees) rather than learning each step hands-on.
+
+---
+
 ## Milestone 1 — Backend, Redis, and worker via Compose
 
 Goal: submit a job with `curl` and watch a worker produce thumbnails. No gateway or frontend yet.
