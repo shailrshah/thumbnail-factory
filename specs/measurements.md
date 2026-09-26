@@ -15,7 +15,14 @@ Measured on linux/arm64 (Apple Silicon); x86_64 sizes will differ slightly.
 |-------|-------|---------:|---------:|-------|
 | Milestone 1 (task 1.6) | single-stage, `-slim` (Debian) | 299 MB | 104 MB | See breakdown below |
 | Alpine switch | single-stage, `-alpine` | 200 MB | 84 MB | OS layer 115 MB → 9 MB; the leftover `uv` layer is now 82 MB (41%) |
-| Milestone 5 (task 5.2) | multi-stage, `-alpine` | _tbd_ | _tbd_ | |
+| Task 5.2 (done early) | multi-stage, `-alpine` | 117 MB | 36 MB | `uv` and pip cache stay in the builder stage |
+
+Tried and not adopted:
+
+| Variant | Unpacked | Download | Why not |
+|---------|---------:|---------:|---------|
+| multi-stage + plain `uvicorn` (no `[standard]` extras) | 98 MB | 29 MB | Optional; kept the extras for now |
+| multi-stage + `RUN rm -rf` pip in the final stage | 117 MB | 36 MB | **No effect.** pip lives in a base-image layer; a later `rm` only adds a whiteout layer. Layers are additive, which is why multi-stage works and deleting doesn't. |
 
 ### Milestone 1 breakdown (`-slim`)
 
