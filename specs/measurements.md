@@ -52,3 +52,15 @@ or a one-off `chown -R 10001:10001` on the volume.
 Other services: the gateway and frontend already run as `nginx` (UID 101). `docker compose exec redis`
 opens a root shell, but `redis-server` itself runs as `redis`, because the image's entrypoint drops
 privileges.
+
+## Scaling (task 5.6, experiment 1)
+
+`docker compose -f compose.yml up -d --scale worker=3`, then 6 uploads with `WORKER_DELAY_SECONDS=2`:
+the jobs were split 2 per worker across 3 distinct worker hostnames, in two waves (3 started at :11,
+3 at :13). The batch finished in ~4 s instead of ~12 s with one worker.
+
+## Restart policy (task 5.5)
+
+`docker compose exec worker kill 1` makes RQ do a warm shutdown and exit with code **0**. With no restart
+policy the worker stays `Exited (0)`. `on-failure` would not restart it either, because the exit code is 0;
+`unless-stopped` brings the same container back (restart count 1).

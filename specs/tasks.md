@@ -258,15 +258,15 @@ Each task changes one thing, so you can observe its effect.
   - Done when: `docker compose exec backend id` shows UID 10001. On a fresh volume
     (`docker compose down -v && up`), uploads still work. Note in `measurements.md` what happens if you
     skip pre-creating `/data`.
-- [ ] **5.4 Healthchecks and startup order** [IR7] — healthchecks on redis and backend;
+- [x] **5.4 Healthchecks and startup order** [IR7] — healthchecks on redis and backend;
   `depends_on: condition: service_healthy` as in the design §6.1 table.
   - Done when: `docker compose up --wait` returns only once all services are healthy, and
     `docker compose ps` shows `(healthy)`.
-- [ ] **5.5 Restart policies** [IR9] — `restart: unless-stopped` on all services.
+- [x] **5.5 Restart policies** [IR9] — `restart: unless-stopped` on all services.
   - Done when: `docker compose exec worker kill 1` → the worker comes back by itself.
-- [ ] **5.6 Scaling check** [IR8] — `docker compose up -d --scale worker=3`, upload 6 images, and see ≥2
+- [x] **5.6 Scaling check** [IR8] — `docker compose up -d --scale worker=3`, upload 6 images, and see ≥2
   distinct worker hostnames in the UI.
-- [ ] **5.7 Commit & push**
+- [x] **5.7 Commit & push**
 
 ---
 
