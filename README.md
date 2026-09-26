@@ -216,9 +216,33 @@ never started.
 running one. Without the condition, the gateway would start straight away and send users errors.
 Run `docker compose down && docker compose up -d --wait` to recover.
 
-### 7–8. CI and deployment
+### 7. CI catches what unit tests can't
 
-Experiments for the CI smoke test and for rolling back a deployment are added in milestones 7 and 9.
+CI (`.github/workflows/ci.yml`) runs three jobs on every pull request. `backend` and `frontend` run lint
+and unit tests. `smoke` then builds every image, starts the production-like stack with
+`up --wait`, and runs `scripts/smoke_test.sh` against it. `main` is protected: a PR can only merge
+when all three pass.
+
+To see why the smoke job matters, we opened a PR ([#1](https://github.com/shailrshah/thumbnail-factory/pull/1))
+with a one-character mistake in `compose.yml`: the worker listens on `thumbnail` while the API
+enqueues to `thumbnails`.
+
+| Job | Result |
+|-----|--------|
+| backend | ✅ pass: every unit test is still green, because the Python code is fine |
+| frontend | ✅ pass |
+| smoke | ❌ `FAIL: job still 'queued' after 30s` |
+
+The failure step printed the container logs, which pointed straight at the cause:
+`worker-1 | *** Listening on thumbnail...`. GitHub showed the PR as **BLOCKED**.
+
+**Why:** unit tests check pieces separately, and this bug lives in how the pieces are wired together.
+The only way to catch it is to run the real containers together, which is what the smoke job does.
+The images build with a per-image GitHub Actions cache: 21 s cold, 11 s warm.
+
+### 8. Deployment and rollback
+
+Added in milestone 9.
 
 ## Tests
 

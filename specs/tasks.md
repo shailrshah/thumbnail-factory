@@ -287,10 +287,10 @@ Each task changes one thing, so you can observe its effect.
 - [x] **7.3 `ci.yml`: smoke job** [CI4, CI5] — `docker/bake-action` with the GHA cache, then
   `compose up -d --wait`, `smoke_test.sh`, and logs on failure.
   - Done when: the workflow is green on a PR. A second run shows cache hits (much shorter build step).
-- [ ] **7.4 Branch protection** 🧑 — in GitHub settings, require the CI checks on `main`.
-- [ ] **7.5 Experiment 7** — open a PR that breaks `tasks.py`; confirm the smoke job fails and prints
+- [x] **7.4 Branch protection** 🧑 — in GitHub settings, require the CI checks on `main`.
+- [x] **7.5 Experiment 7** — open a PR that breaks `tasks.py`; confirm the smoke job fails and prints
   logs. Add the section to the README.
-- [ ] **7.6 Commit & push** (via PR, now that branch protection is on)
+- [x] **7.6 Commit & push** (via PR, now that branch protection is on)
 
 ---
 
