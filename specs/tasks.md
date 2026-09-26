@@ -300,16 +300,16 @@ Before starting: 🧑 confirm `us-east-2` is the project's selected Region (AWS 
 projects → Overview → Additional Info → Region). Consider a $5 budget alert in the Billing and Cost
 Management console.
 
-- [ ] **8.1 CDK app skeleton** [D7] — `infra/` Python CDK app, one stack `ThumbnailFactory`, env pinned
+- [x] **8.1 CDK app skeleton** [D7] — `infra/` Python CDK app, one stack `ThumbnailFactory`, env pinned
   to the account and `us-east-2`. `cdk synth` succeeds.
-- [ ] **8.2 ECR repositories** [D2] — three repos with a lifecycle of 10 images, `emptyOnDelete`, and
+- [x] **8.2 ECR repositories** [D2] — three repos with a lifecycle of 10 images, `emptyOnDelete`, and
   `RemovalPolicy.DESTROY`.
-- [ ] **8.3 Networking and instance** [D1, D5, D6, D10] — default VPC lookup, security group (TCP 80
+- [x] **8.3 Networking and instance** [D1, D5, D6, D10] — default VPC lookup, security group (TCP 80
   only), instance role (SSM core + scoped ECR pull), `t3.small` AL2023 instance with IMDSv2, a 20 GiB
   encrypted gp3 root volume, user data installing Docker + the Compose plugin, and an Elastic IP.
-- [ ] **8.4 CI IAM user** [D4] — `thumbnail-factory-ci` with the least-privilege inline policy; no keys in CDK.
-- [ ] **8.5 Outputs** — `PublicUrl`, `InstanceId`, `EcrRegistry`, `CiUserName`.
-- [ ] **8.6 Deploy** — `cdk bootstrap` (once) and `cdk deploy`.
+- [x] **8.4 CI IAM user** [D4] — `thumbnail-factory-ci` with the least-privilege inline policy; no keys in CDK.
+- [x] **8.5 Outputs** — `PublicUrl`, `InstanceId`, `EcrRegistry`, `CiUserName`.
+- [x] **8.6 Deploy** — `cdk bootstrap` (once) and `cdk deploy`.
   - Done when: the instance appears in the SSM Fleet Manager as online, and
     `aws ssm send-command ... "docker version && docker compose version"` succeeds.
 - [ ] **8.7 CI credentials** 🧑 (I'll give exact commands):
