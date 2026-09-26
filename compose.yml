@@ -22,6 +22,7 @@ services:
       FRONTEND_UPSTREAM: ${FRONTEND_UPSTREAM:-frontend:8080}
     volumes:
       - media:/data:ro
+    networks: [public]
     depends_on:
       - frontend
       - backend
@@ -31,19 +32,30 @@ services:
       context: ./frontend
       target: runtime
     image: thumbnail-factory/frontend
+    networks: [public]
 
   backend:
     <<: *backend
+    # The only service on both networks: the sole path from the public tier to Redis.
+    networks: [public, internal]
 
   worker:
     <<: *backend
     command: ["rq", "worker", "thumbnails", "--url", "${REDIS_URL:-redis://redis:6379/0}"]
+    networks: [internal]
 
   redis:
     image: public.ecr.aws/docker/library/redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data
+    networks: [internal]
+
+networks:
+  public:
+  internal:
+    # No route out of Docker: Redis and the worker never need the internet.
+    internal: true
 
 volumes:
   media:
