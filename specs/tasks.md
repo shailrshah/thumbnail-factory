@@ -215,16 +215,16 @@ Goal: one entry point on `:8080`; thumbnails served by nginx directly from the v
 
 Goal: upload and watch jobs in the browser at `http://localhost:8080`.
 
-- [ ] **3.1 Scaffold** — Vite React-TS app in `frontend/`, ESLint config, `npm run lint` and `npm run build` scripts.
-- [ ] **3.2 Upload** [FR1–FR3] — `UploadDropzone`: file picker + drag-and-drop, client-side type/size
+- [x] **3.1 Scaffold** — Vite React-TS app in `frontend/`, oxlint (the template's default linter), `npm run lint` and `npm run build` scripts.
+- [x] **3.2 Upload** [FR1–FR3] — `UploadDropzone`: file picker + drag-and-drop, client-side type/size
   hint, and the server error shown inline.
-- [ ] **3.3 Jobs view** [FR8–FR10] — `JobList` polling `/api/jobs` every 1 s; `JobCard` showing status
+- [x] **3.3 Jobs view** [FR8–FR10] — `JobList` polling `/api/jobs` every 1 s; `JobCard` showing status
   badge, worker hostname, error, and thumbnails.
-- [ ] **3.4 Frontend Dockerfile** [IR10] — stages `deps`, `dev`, `build`, `runtime` per design §3.2;
+- [x] **3.4 Frontend Dockerfile** [IR10] — stages `deps`, `dev`, `build`, `runtime` per design §3.2;
   `frontend/nginx.conf` with SPA fallback on 8080.
-- [ ] **3.5 Wire into Compose** — add `frontend`; gateway `/` → `${FRONTEND_UPSTREAM}` (default `frontend:8080`).
+- [x] **3.5 Wire into Compose** — add `frontend`; gateway `/` → `${FRONTEND_UPSTREAM}` (default `frontend:8080`).
   - Done when: in a browser, upload 3 images, see each go queued → processing → done, and see thumbnails render.
-- [ ] **3.6 Commit & push**
+- [x] **3.6 Commit & push**
 
 ---
 
@@ -283,7 +283,7 @@ Each task changes one thing, so you can observe its effect.
 ## Milestone 7 — CI
 
 - [ ] **7.1 `ci.yml`: backend job** [CI1–CI3] — uv, `ruff check`, `pytest`.
-- [ ] **7.2 `ci.yml`: frontend job** [CI2] — `npm ci`, lint, `tsc --noEmit`, build.
+- [ ] **7.2 `ci.yml`: frontend job** [CI2] — `npm ci`, oxlint, `tsc --noEmit`, build.
 - [ ] **7.3 `ci.yml`: smoke job** [CI4, CI5] — `docker/bake-action` with the GHA cache, then
   `compose up -d --wait`, `smoke_test.sh`, and logs on failure.
   - Done when: the workflow is green on a PR. A second run shows cache hits (much shorter build step).

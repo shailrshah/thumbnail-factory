@@ -223,7 +223,7 @@ Thumbnail URL = `/media/thumbs/{id}/{width}.webp`, served by the gateway from `/
 | Image | Base | Build notes |
 |-------|------|-------------|
 | `backend` | `python:3.12-alpine` | Builder stage installs deps with `uv` into `/opt/venv`; final stage copies only the venv and `app/`. Runs as `app` (UID 10001). Creates `/data` owned by `app` so a fresh named volume inherits that ownership. |
-| `frontend` | `node:22-alpine` → `nginx-unprivileged:alpine` | See §3.2. |
+| `frontend` | `node:24-alpine` → `nginx-unprivileged:alpine` | See §3.2. Node 24 matches the local toolchain that generates `package-lock.json`. |
 | `gateway` | `nginx-unprivileged:alpine` | Copies the config template only. |
 | `redis` | `redis:7-alpine` | Official image, not built. |
 
@@ -287,7 +287,7 @@ A `.dockerignore` in each build context excludes `node_modules`, `.venv`, tests,
 | Layer | Tool | Scope |
 |-------|------|-------|
 | Unit | `pytest` | `imaging.py` (sizes, aspect ratio, no upscale, EXIF orientation); `jobs.py` and API routes against `fakeredis`; task function called directly with RQ's synchronous mode |
-| Lint | `ruff`, `eslint`, `tsc --noEmit` | backend, frontend |
+| Lint | `ruff`, `oxlint`, `tsc --noEmit` | backend, frontend |
 | Integration | `scripts/smoke_test.sh` | Full stack via `compose.yml`: upload `scripts/fixtures/sample.jpg` through the gateway, poll until `done` (timeout 30 s), `GET` one thumbnail and assert `200 image/webp`. Exits non-zero on failure. |
 
 ## 9. CI/CD (GitHub Actions)
@@ -302,7 +302,7 @@ flowchart LR
 ```
 
 - `backend`: set up Python + uv, `ruff check`, `pytest`.
-- `frontend`: `npm ci`, `eslint`, `tsc --noEmit`, `vite build`.
+- `frontend`: `npm ci`, `oxlint`, `tsc --noEmit`, `vite build`.
 - `smoke`: `docker/bake-action` builds all Compose services with `cache-from/to: type=gha` (CI4), then
   `docker compose -f compose.yml up -d --wait` and `scripts/smoke_test.sh`. `if: failure()` dumps
   `docker compose logs` (CI5).

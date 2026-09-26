@@ -85,7 +85,7 @@ All routes are served under `/api` by `backend`.
 ## Continuous integration (GitHub Actions)
 
 - CI1. Runs on every pull request and every push to `main`.
-- CI2. Lint: `ruff` for Python, `eslint` for the frontend.
+- CI2. Lint: `ruff` for Python, `oxlint` for the frontend.
 - CI3. Unit tests: `pytest` for backend and worker.
 - CI4. Build all images with Buildx, using the GitHub Actions cache so unchanged layers are reused.
 - CI5. Integration smoke test against the real Compose stack: `docker compose -f compose.yml up -d --wait`,
