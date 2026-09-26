@@ -247,12 +247,12 @@ Goal: upload and watch jobs in the browser at `http://localhost:8080`.
 
 Each task changes one thing, so you can observe its effect.
 
-- [ ] **5.1 Split networks** [IR3] — `public` (gateway, frontend, backend) and `internal` (backend, worker, redis).
+- [x] **5.1 Split networks** [IR3] — `public` (gateway, frontend, backend) and `internal` (backend, worker, redis).
   - Done when: `docker compose exec gateway nc -zv redis 6379` fails (name does not resolve), and the
     smoke test still passes.
 - [x] **5.2 Multi-stage backend image** [IR10] _(done early, after the Alpine switch)_ — builder stage with `uv` → `/opt/venv`; minimal Alpine runtime stage.
   - 📏 Record the new image size next to the milestone 1 size in `specs/measurements.md`.
-- [ ] **5.3 Non-root** [IR12] — `app` user (UID 10001) in the backend image (Alpine: BusyBox
+- [x] **5.3 Non-root** [IR12] — `app` user (UID 10001) in the backend image (Alpine: BusyBox
   `addgroup -S`/`adduser -S -D -H`, not Debian's `useradd`); `/data` created and owned
   by `app` in the image.
   - Done when: `docker compose exec backend id` shows UID 10001. On a fresh volume

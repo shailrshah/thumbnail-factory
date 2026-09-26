@@ -33,3 +33,22 @@ Tried and not adopted:
 | `pip install uv`: uv binary 42 MB, pip cache 20 MB, rest | 75 MB | No, only used at build time |
 | `.venv` (largest: uvloop 16 MB, Pillow + libs 22 MB, pydantic-core 4 MB) | 64 MB | Mostly; uvloop and httptools are optional `uvicorn[standard]` extras |
 | App code | 37 KB | Yes |
+
+## Non-root and volume ownership (task 5.3)
+
+The backend and worker now run as `app` (UID 10001). Findings:
+
+| Scenario | `/data` owner | Writes |
+|----------|---------------|--------|
+| Existing volume created while the image ran as root | `0:0` (unchanged) | **Fail**: `PermissionError: [Errno 13]` on upload |
+| Fresh volume, image pre-creates `/data` owned by `app` | `10001:10001` | OK |
+| Fresh volume, image does **not** pre-create `/data` | `0:0` | **Fail**: `mkdir: can't create directory` |
+
+Docker copies the mount point's ownership (and contents) from the image into a named volume only when
+the volume is new and empty. It never changes ownership of an existing volume. Switching an existing
+deployment to non-root therefore needs either a fresh volume (`docker compose down -v`, which loses data)
+or a one-off `chown -R 10001:10001` on the volume.
+
+Other services: the gateway and frontend already run as `nginx` (UID 101). `docker compose exec redis`
+opens a root shell, but `redis-server` itself runs as `redis`, because the image's entrypoint drops
+privileges.
