@@ -244,6 +244,89 @@ The images build with a per-image GitHub Actions cache: 21 s cold, 11 s warm.
 
 Added in milestone 9.
 
+## Deployment (AWS)
+
+The same Compose stack runs on a single EC2 instance, so deploying adds to what you learned about
+Compose rather than swapping in a different orchestrator.
+
+```mermaid
+flowchart LR
+    ci[GitHub Actions] -->|push images tagged with the commit SHA| ecr[(ECR)]
+    ci -->|SSM send-command:<br/>compose.prod.yml + deploy script| ec2
+    ecr -->|pull| ec2[EC2 t3.small<br/>Docker + Compose]
+    user([Browser]) -->|HTTP :80, Elastic IP| ec2
+```
+
+**How a deploy works:** merging to `main` runs CI. When CI passes, `.github/workflows/deploy.yml`:
+
+1. Builds the three images and pushes them to ECR, tagged with the commit SHA.
+2. Sends `compose.prod.yml` and `scripts/deploy_remote.sh` to the instance through SSM Run Command.
+   The instance has no git checkout and no SSH; port 22 is closed.
+3. On the instance, the script runs `docker compose pull` and `up -d --wait`, which waits for the
+   healthchecks.
+4. Checks `/api/health` through the public URL.
+
+**Infrastructure** is defined in `infra/` with AWS CDK (Python). It creates the ECR repositories, the
+instance (Amazon Linux 2023, IMDSv2 only, encrypted disk, HTTP-only security group, Elastic IP), the
+instance role (SSM plus ECR pull), and the `thumbnail-factory-ci` IAM user used by GitHub Actions.
+
+### One-time setup
+
+```sh
+cd infra
+export AWS_PROFILE=personal
+npx aws-cdk@2 bootstrap aws://<account-id>/us-east-2
+npx aws-cdk@2 deploy --outputs-file cdk-outputs.json
+```
+
+Then create the `production` GitHub environment (protected branches only), its variables
+(`AWS_REGION`, `ECR_REGISTRY`, `INSTANCE_ID`, `PUBLIC_URL`, taken from the CDK outputs), and the
+`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` secrets from
+`aws iam create-access-key --user-name thumbnail-factory-ci`. Pipe the key straight into
+`gh secret set` rather than printing it.
+
+**Why access keys and not OIDC:** GitHub OIDC is the better practice, but this AWS project's service
+control policy denies creating identity providers (`iam:*Provider*`). To limit the risk of long-lived
+keys, the CI user can only push to these three repositories and run commands on this one instance, and
+the keys are only visible to jobs running in the `production` environment, which only `main` can use.
+
+### Rotating the CI keys
+
+The user can have two keys at a time, so rotating doesn't cause downtime:
+
+```sh
+aws iam list-access-keys --user-name thumbnail-factory-ci        # note the old key ID
+# create a new key and pipe it into `gh secret set` (as in the setup), then:
+aws iam delete-access-key --user-name thumbnail-factory-ci --access-key-id <old-key-id>
+```
+
+### Cost
+
+Paid from the AWS free plan credits, at us-east-2 on-demand prices:
+
+| Item | Per month |
+|------|----------:|
+| EC2 `t3.small`, always on | ≈ $15.20 |
+| Public IPv4 address (Elastic IP) | ≈ $3.65 |
+| EBS gp3, 20 GiB | ≈ $1.60 |
+| ECR storage (up to 10 images per repository) | < $0.10 |
+| **Total** | **≈ $20.50** (≈ $0.68/day) |
+
+### Tear down
+
+```sh
+cd infra && export AWS_PROFILE=personal
+# CloudFormation can't delete a user that still has access keys, and these were made outside CDK.
+for k in $(aws iam list-access-keys --user-name thumbnail-factory-ci --query 'AccessKeyMetadata[].AccessKeyId' --output text); do
+  aws iam delete-access-key --user-name thumbnail-factory-ci --access-key-id "$k"
+done
+npx aws-cdk@2 destroy
+```
+
+This deletes the instance, and with it **all uploaded images and job history**, which live on the
+instance's disk. It also deletes the Elastic IP, the ECR repositories (including their images), and
+the CI user. The `CDKToolkit` bootstrap stack stays; it costs essentially nothing while empty.
+
 ## Tests
 
 ```sh
