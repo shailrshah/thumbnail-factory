@@ -255,10 +255,14 @@ A `.dockerignore` in each build context excludes `node_modules`, `.venv`, tests,
 ### 6.2 `compose.override.yml` (dev; auto-loaded; IR13)
 
 - backend: bind-mount `./backend/app`, command `uvicorn app.main:app --reload`.
-- worker: bind-mount `./backend/app`, command `watchfiles "rq worker thumbnails" app` to restart on change.
-- frontend: `target: dev`, bind-mount `./frontend`, anonymous volume over `/app/node_modules` so the
+- worker: bind-mount `./backend/app`, command `watchfiles "rq worker thumbnails ..." app` to restart on change.
+  `watchfiles` is present because it's part of `uvicorn[standard]`. If that extra is ever dropped, add
+  `watchfiles` explicitly or the dev worker won't start.
+- frontend: `target: dev`, image `thumbnail-factory/frontend-dev` (so the dev build doesn't overwrite the
+  production-like `thumbnail-factory/frontend` tag), bind-mount `./frontend`, anonymous volume over `/app/node_modules` so the
   host's copy (if any) doesn't shadow the container's.
-- gateway: `FRONTEND_UPSTREAM=frontend:5173`.
+- gateway: `FRONTEND_UPSTREAM=frontend:5173`. Vite's HMR client connects to the page's own origin when no
+  `server.hmr` port is configured, so its WebSocket goes through the gateway with no Vite config.
 
 `docker compose -f compose.yml up` skips the override (IR14).
 

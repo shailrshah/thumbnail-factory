@@ -230,16 +230,16 @@ Goal: upload and watch jobs in the browser at `http://localhost:8080`.
 
 ## Milestone 4 — Dev mode with hot reload
 
-- [ ] **4.1 `compose.override.yml`** [IR13] — per design §6.2 (bind mounts, `uvicorn --reload`,
+- [x] **4.1 `compose.override.yml`** [IR13] — per design §6.2 (bind mounts, `uvicorn --reload`,
   `watchfiles` for the worker, Vite `dev` target, `FRONTEND_UPSTREAM=frontend:5173`, anonymous
-  `node_modules` volume). Add `watchfiles` to the backend dev deps.
+  `node_modules` volume). `watchfiles` already comes with `uvicorn[standard]`, so no new dependency.
   - Done when:
     - editing a React component updates the browser without a reload (HMR through the gateway);
     - editing `app/main.py` restarts uvicorn (visible in the logs);
     - editing `app/tasks.py` restarts the worker.
-- [ ] **4.2 Prod-like run still works** [IR14] — `docker compose -f compose.yml up --build` serves the
+- [x] **4.2 Prod-like run still works** [IR14] — `docker compose -f compose.yml up --build` serves the
   built frontend, and `scripts/smoke_test.sh` passes.
-- [ ] **4.3 Commit & push**
+- [x] **4.3 Commit & push**
 
 ---
 
