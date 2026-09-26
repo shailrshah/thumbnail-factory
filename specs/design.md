@@ -148,6 +148,29 @@ Routes (all under `/api`):
 
 Job IDs are UUID4 hex strings. The RQ job ID is set equal to the app job ID so the two can be correlated.
 
+Job JSON, as returned by `GET /api/jobs/{id}` and as each element of `GET /api/jobs` (`{"jobs": [...]}`).
+Timestamps are ISO 8601 UTC. Fields that don't apply yet are `null`.
+
+```json
+{
+  "id": "3f2b9c1e8a7d4b6f9e0c1d2a3b4c5d6e",
+  "status": "done",
+  "filename": "cat.jpg",
+  "created_at": "2026-09-26T18:04:11Z",
+  "started_at": "2026-09-26T18:04:11Z",
+  "finished_at": "2026-09-26T18:04:13Z",
+  "worker": "a1b2c3d4e5f6",
+  "error": null,
+  "thumbnails": [
+    {"width": 128, "url": "/media/thumbs/3f2b9c1e8a7d4b6f9e0c1d2a3b4c5d6e/128.webp"},
+    {"width": 256, "url": "/media/thumbs/3f2b9c1e8a7d4b6f9e0c1d2a3b4c5d6e/256.webp"},
+    {"width": 512, "url": "/media/thumbs/3f2b9c1e8a7d4b6f9e0c1d2a3b4c5d6e/512.webp"}
+  ]
+}
+```
+
+`POST /api/jobs` returns `202` with the same shape (`status: "queued"`, empty `thumbnails`).
+
 ### 3.4 worker (RQ)
 
 - Same image as backend; command `rq worker thumbnails --url $REDIS_URL`.
