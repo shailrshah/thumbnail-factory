@@ -1,12 +1,4 @@
-import fakeredis
-import pytest
-
 from app import jobs
-
-
-@pytest.fixture
-def r():
-    return fakeredis.FakeRedis(decode_responses=True)
 
 
 def test_create_returns_queued_job_with_nulls(r):
