@@ -239,7 +239,7 @@ A `.dockerignore` in each build context excludes `node_modules`, `.venv`, tests,
 
 | Service | Build/image | Networks | Volumes | Ports | Health / depends_on |
 |---------|-------------|----------|---------|-------|---------------------|
-| gateway | `./gateway` | public | `media:/data:ro` | `8080:8080` | depends on frontend (started), backend (healthy) |
+| gateway | `./gateway` | public | `media:/data:ro` | `${GATEWAY_PORT:-8080}:8080` | depends on frontend (started), backend (healthy) |
 | frontend | `./frontend` target `runtime` | public | — | — | — |
 | backend | `./backend` | public, internal | `media:/data` | — | healthcheck `/api/health`; depends on redis (healthy) |
 | worker | `./backend` (same image) | internal | `media:/data` | — | depends on redis (healthy) |
@@ -273,6 +273,7 @@ A `.dockerignore` in each build context excludes `node_modules`, `.venv`, tests,
 
 | Variable | Default | Used by |
 |----------|---------|---------|
+| `GATEWAY_PORT` | `8080` | host port for the gateway in `compose.yml`; override when 8080 is taken |
 | `REDIS_URL` | `redis://redis:6379/0` | backend, worker |
 | `MEDIA_ROOT` | `/data` | backend, worker |
 | `MAX_UPLOAD_MB` | `10` | backend |

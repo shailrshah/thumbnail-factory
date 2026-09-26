@@ -191,23 +191,23 @@ Goal: submit a job with `curl` and watch a worker produce thumbnails. No gateway
 
 Goal: one entry point on `:8080`; thumbnails served by nginx directly from the volume.
 
-- [ ] **2.1 Gateway image** [IR4]
+- [x] **2.1 Gateway image** [IR4]
   - `gateway/Dockerfile` from `public.ecr.aws/nginx/nginx-unprivileged:alpine`.
   - `gateway/templates/default.conf.template` with routes `/api/` → backend and `/media/` → `alias /data/`.
     Include `client_max_body_size 10m`, `resolver 127.0.0.11`, and variables in `proxy_pass`, per design
     §3.1. Leave `/` returning a placeholder until milestone 3.
-- [ ] **2.2 Wire into Compose** [IR2, IR5]
+- [x] **2.2 Wire into Compose** [IR2, IR5]
   - Add `gateway` publishing `8080:8080`, `media:/data:ro`. Remove the backend's published port.
   - Done when: the curl flow from 1.7 works via `localhost:8080/api/...`, and
     `curl -I localhost:8080/media/thumbs/<id>/256.webp` returns `200` with `Content-Type: image/webp`.
   - Done when: an 11 MB upload returns `413` from nginx (check the gateway logs; the backend log should
     show no request).
-- [ ] **2.3 Smoke test script** [CI5]
+- [x] **2.3 Smoke test script** [CI5]
   - `scripts/smoke_test.sh` + `scripts/fixtures/sample.jpg`, per design §8. `BASE_URL` defaults to
     `http://localhost:8080`.
   - Done when: it exits 0 against the running stack and exits non-zero with the worker stopped
     (`docker compose stop worker`).
-- [ ] **2.4 Commit & push**
+- [x] **2.4 Commit & push**
 
 ---
 
