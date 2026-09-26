@@ -38,3 +38,35 @@ jobs:
       - run: npm run lint
       # `build` runs `tsc -b` first, so type errors fail here.
       - run: npm run build
+
+  smoke:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build images
+        uses: docker/bake-action@v6
+        with:
+          source: .
+          files: compose.yml
+          targets: backend,frontend,gateway
+          load: true
+          # One cache scope per image; a shared scope would have each build overwrite the others.
+          # mode=max also caches builder stages, where the slow dependency installs happen.
+          set: |
+            backend.cache-from=type=gha,scope=backend
+            backend.cache-to=type=gha,scope=backend,mode=max
+            frontend.cache-from=type=gha,scope=frontend
+            frontend.cache-to=type=gha,scope=frontend,mode=max
+            gateway.cache-from=type=gha,scope=gateway
+            gateway.cache-to=type=gha,scope=gateway,mode=max
+      - name: Start stack
+        run: docker compose -f compose.yml up -d --wait --wait-timeout 120 --no-build
+      - name: Smoke test
+        run: scripts/smoke_test.sh
+      - name: Dump state on failure
+        if: failure()
+        run: |
+          docker compose -f compose.yml ps -a
+          docker compose -f compose.yml logs --no-color
