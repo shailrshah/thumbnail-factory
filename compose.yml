@@ -1,0 +1,34 @@
+x-backend: &backend
+  build: ./backend
+  image: thumbnail-factory/backend
+  environment:
+    REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    MEDIA_ROOT: /data
+    MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+    WORKER_DELAY_SECONDS: ${WORKER_DELAY_SECONDS:-2}
+    THUMBNAIL_WIDTHS: ${THUMBNAIL_WIDTHS:-128,256,512}
+  volumes:
+    - media:/data
+  depends_on:
+    - redis
+
+services:
+  backend:
+    <<: *backend
+    # Published only until the gateway exists (milestone 2).
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *backend
+    command: ["rq", "worker", "thumbnails", "--url", "${REDIS_URL:-redis://redis:6379/0}"]
+
+  redis:
+    image: public.ecr.aws/docker/library/redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
+volumes:
+  media:
+  redis-data:
