@@ -240,9 +240,30 @@ The failure step printed the container logs, which pointed straight at the cause
 The only way to catch it is to run the real containers together, which is what the smoke job does.
 The images build with a per-image GitHub Actions cache: 21 s cold, 11 s warm.
 
-### 8. Deployment and rollback
+### 8. Roll back a deployment
 
-Added in milestone 9.
+Every merge to `main` deploys images tagged with that commit's SHA, and ECR keeps the last 10 of
+each image. To roll back, run the Deploy workflow by hand with an older SHA:
+
+```sh
+gh workflow run deploy.yml -f image_tag=<full-commit-sha>
+```
+
+What happened when we rolled back from `6945057` to `cfb5ad0`:
+
+- The build steps were **skipped**, because those images were already in ECR. The job took 37 s.
+- On the instance, `.env` and all four app containers switched to `cfb5ad0`.
+- The job created before the rollback was **still there**. Rolling back replaces containers, but the
+  `media` and `redis-data` volumes stay.
+- Running the workflow again with `6945057` rolled forward, and the smoke test passed against
+  production.
+
+A mistyped SHA fails at the checkout step, before anything touches the instance. A real SHA whose
+images the ECR lifecycle rule has deleted fails at *Check images exist for this tag*.
+
+**Why rollback is this simple:** images are *immutable* and addressed by commit, and the deploy
+checks out that commit's `compose.prod.yml`. So "deploy version X" always means exactly the same
+images and the same Compose file, whether X is new or old.
 
 ## Deployment (AWS)
 
