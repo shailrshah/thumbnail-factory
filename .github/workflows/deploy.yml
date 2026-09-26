@@ -1,0 +1,116 @@
+name: Deploy
+
+on:
+  # After CI passes on a push to main.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # Rollback: redeploy a previous commit's images, which are already in ECR.
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Full commit SHA to deploy
+        required: true
+
+# Never run two deploys against the one instance at the same time.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag || github.event.workflow_run.head_sha }}
+      ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      INSTANCE_ID: ${{ vars.INSTANCE_ID }}
+    steps:
+      # Check out the commit being deployed, so compose.prod.yml matches its images.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.IMAGE_TAG }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - if: github.event_name != 'workflow_dispatch'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push images
+        if: github.event_name != 'workflow_dispatch'
+        uses: docker/bake-action@v6
+        with:
+          source: .
+          files: compose.yml
+          targets: backend,frontend,gateway
+          push: true
+          set: |
+            backend.tags=${{ env.ECR_REGISTRY }}/thumbnail-factory/backend:${{ env.IMAGE_TAG }}
+            frontend.tags=${{ env.ECR_REGISTRY }}/thumbnail-factory/frontend:${{ env.IMAGE_TAG }}
+            gateway.tags=${{ env.ECR_REGISTRY }}/thumbnail-factory/gateway:${{ env.IMAGE_TAG }}
+            backend.cache-from=type=gha,scope=backend
+            frontend.cache-from=type=gha,scope=frontend
+            gateway.cache-from=type=gha,scope=gateway
+
+      # Fails fast on a mistyped rollback SHA, or one whose images the ECR lifecycle has expired.
+      # batch-get-image (not describe-images) because it's what the CI user's pull grant allows;
+      # it reports a missing tag in `failures` rather than erroring, hence the count.
+      - name: Check images exist for this tag
+        run: |
+          for name in backend frontend gateway; do
+            found=$(aws ecr batch-get-image --repository-name "thumbnail-factory/$name" \
+              --image-ids imageTag="$IMAGE_TAG" --query 'length(images)' --output text)
+            if [ "$found" != 1 ]; then
+              echo "::error::thumbnail-factory/$name:$IMAGE_TAG not found in ECR"
+              exit 1
+            fi
+          done
+
+      - name: Deploy to instance via SSM
+        run: |
+          compose_b64=$(base64 -w0 compose.prod.yml)
+          script_b64=$(base64 -w0 scripts/deploy_remote.sh)
+          params=$(jq -n \
+            --arg c "$compose_b64" --arg s "$script_b64" \
+            --arg env "ECR_REGISTRY=$ECR_REGISTRY IMAGE_TAG=$IMAGE_TAG AWS_REGION=$AWS_REGION" \
+            '{commands: [
+                "mkdir -p /opt/thumbnail-factory",
+                "echo \($c) | base64 -d > /opt/thumbnail-factory/compose.prod.yml",
+                "echo \($s) | base64 -d > /opt/thumbnail-factory/deploy_remote.sh",
+                "\($env) bash /opt/thumbnail-factory/deploy_remote.sh"
+              ],
+              executionTimeout: ["600"]}')
+          command_id=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy ${IMAGE_TAG:0:12}" \
+            --parameters "$params" \
+            --query Command.CommandId --output text)
+          echo "SSM command $command_id"
+
+          for _ in $(seq 1 120); do
+            sleep 5
+            status=$(aws ssm get-command-invocation --command-id "$command_id" \
+              --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || echo Pending)
+            case "$status" in Pending|InProgress|Delayed) continue ;; esac
+            break
+          done
+          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+            --query '[StandardOutputContent, StandardErrorContent]' --output text
+          echo "Status: $status"
+          [ "$status" = Success ]
+
+      - name: Health check through the public endpoint
+        if: vars.PUBLIC_URL != ''
+        run: curl -fsS --retry 5 --retry-delay 3 --retry-all-errors "${{ vars.PUBLIC_URL }}/api/health"
