@@ -328,10 +328,10 @@ Management console.
   rollback), SSM send-command with inline files, invocation polling, and a post-deploy health check.
 - [x] **9.4 First deploy** — merge to `main`.
   - Done when: `http://<PublicUrl>` serves the app, and an upload completes end-to-end on EC2.
-- [ ] **9.5 Experiment 8 (rollback)** — `workflow_dispatch` with a previous SHA; confirm the old version is served.
-- [ ] **9.6 README: deployment section** [D9] — architecture, one-time setup, cost estimate
+- [x] **9.5 Experiment 8 (rollback)** — `workflow_dispatch` with a previous SHA; confirm the old version is served.
+- [x] **9.6 README: deployment section** [D9] — architecture, one-time setup, cost estimate
   (~$20/month from credits for `t3.small`), key rotation, `cdk destroy` teardown and data-loss note.
-- [ ] **9.7 Commit & push**
+- [x] **9.7 Commit & push**
 
 ---
 
