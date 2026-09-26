@@ -132,9 +132,16 @@ treats `docker compose kill` as you deliberately stopping the container, the sam
 container by itself.
 
 **Dev-mode caveat:** in dev mode the container's main process is `watchfiles`, not `rq`. If `rq`
-crashes, `watchfiles` keeps running, so Docker still reports the container as `Up` and the restart
-policy never applies. Check `docker compose logs worker`. In production-like mode `rq` *is* the main
-process, so a crash stops the container and it gets restarted.
+crashes, `watchfiles` keeps running, so the container stays `Up` and the restart policy never
+applies. The worker's healthcheck catches this: it turns `(unhealthy)` about 30 s after the crash
+(`docker compose ps`), and `up --wait` fails. But Compose never restarts an unhealthy container (only
+Swarm and Kubernetes do), so restart it with `docker compose restart worker`. In production-like mode
+`rq` *is* the main process, so a crash stops the container and the restart policy brings it back.
+
+The crashed `rq` briefly becomes a **zombie**: dead, but still in the process table because its parent
+(`watchfiles`) hasn't collected its exit status. A naive "is PID alive?" check (`kill -0`) says yes to
+a zombie, so the healthcheck reads the process state from `/proc` instead (see
+`backend/app/worker_health.py`).
 
 ### 3. `down` versus `down -v`
 

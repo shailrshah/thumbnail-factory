@@ -242,7 +242,7 @@ A `.dockerignore` in each build context excludes `node_modules`, `.venv`, tests,
 | gateway | `./gateway` | public | `media:/data:ro` | `${GATEWAY_PORT:-8080}:8080` | depends on frontend (started), backend (healthy) |
 | frontend | `./frontend` target `runtime` | public | — | — | — |
 | backend | `./backend` | public, internal | `media:/data` | — | healthcheck `/api/health`; depends on redis (healthy) |
-| worker | `./backend` (same image) | internal | `media:/data` | — | depends on redis (healthy) |
+| worker | `./backend` (same image) | internal | `media:/data` | — | healthcheck `python -m app.worker_health` (registered in Redis and process alive, zombies count as dead); depends on redis (healthy) |
 | redis | `redis:7-alpine` | internal | `redis-data:/data` | — | healthcheck `redis-cli ping` |
 
 - `restart: unless-stopped` on every service (IR9).
