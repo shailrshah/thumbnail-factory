@@ -1,0 +1,26 @@
+# Dev mode: auto-loaded by `docker compose up`. Skip it with `docker compose -f compose.yml up`.
+services:
+  backend:
+    volumes:
+      - ./backend/app:/app/app
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "app"]
+
+  worker:
+    volumes:
+      - ./backend/app:/app/app
+    # RQ has no reload of its own; watchfiles (installed with uvicorn[standard]) restarts it.
+    command: ["watchfiles", "rq worker thumbnails --url ${REDIS_URL:-redis://redis:6379/0}", "app"]
+
+  frontend:
+    build:
+      target: dev
+    image: thumbnail-factory/frontend-dev
+    volumes:
+      - ./frontend:/app
+      # Anonymous volume so the bind mount doesn't hide the container's node_modules
+      # (and a host node_modules built for macOS never leaks into the Linux container).
+      - /app/node_modules
+
+  gateway:
+    environment:
+      FRONTEND_UPSTREAM: frontend:5173
