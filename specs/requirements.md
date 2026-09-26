@@ -102,14 +102,28 @@ than replacing it with a different orchestrator.
 - D2. Images are pushed to Amazon ECR, one repository per built image, tagged with the git SHA.
   Lifecycle policy keeps the most recent 10 tags.
 - D3. `compose.prod.yml` references ECR images by `IMAGE_TAG` instead of building locally; no bind mounts, no dev overrides.
-- D4. GitHub Actions authenticates to AWS via OIDC and an IAM role scoped to this repo's `main` branch.
-  No long-lived AWS keys in GitHub secrets.
+- D4. GitHub Actions authenticates as a dedicated IAM user, `thumbnail-factory-ci`, whose access keys
+  are stored as GitHub secrets. (OIDC is preferred, but the project's free plan SCP denies
+  `iam:*Provider*`, so an OIDC identity provider cannot be created.) To contain the risk of long-lived keys:
+  - The user's policy allows only: `ecr:GetAuthorizationToken`; image push/pull on this project's ECR
+    repositories; `ssm:SendCommand` on the deployment instance with the `AWS-RunShellScript` document;
+    `ssm:GetCommandInvocation`.
+  - CDK creates the user and policy but not the access keys (keys would otherwise leak into
+    CloudFormation state). Keys are created once via the CLI and pasted into GitHub.
+  - Secrets live in a GitHub environment named `production` that only `main` can deploy to, so
+    pull-request workflows never see them.
+  - README documents key rotation.
 - D5. Deploys run through SSM Run Command (pull images, `docker compose up -d`). No SSH; port 22 closed.
 - D6. Security group allows inbound HTTP (port 80) only. The instance profile grants only ECR pull and SSM.
 - D7. All AWS resources are defined as code with AWS CDK (Python) under `infra/`, deployable and
   destroyable with one command each.
 - D8. Rollback = re-run the deploy workflow with a previous SHA.
 - D9. README documents expected monthly cost and the teardown command.
+- D10. Constraints from the AWS free plan:
+  - All resources are created in the project's selected Region (`us-east-2`).
+  - The instance type must be free-plan eligible; default `t3.small` (x86_64, 2 GiB).
+    x86 avoids multi-arch image builds in CI.
+  - On-demand only (Spot is denied).
 
 ## Learning experiments
 
