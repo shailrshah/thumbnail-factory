@@ -1,0 +1,170 @@
+:root {
+  --text: #1f1d24;
+  --muted: #6b6375;
+  --bg: #fafafa;
+  --surface: #fff;
+  --border: #e3e1e6;
+  --accent: #5b3cc4;
+  --queued: #8a8494;
+  --processing: #b7791f;
+  --done: #2f855a;
+  --failed: #c53030;
+
+  color-scheme: light dark;
+  font: 16px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #ecebef;
+    --muted: #a39dab;
+    --bg: #141217;
+    --surface: #1d1b21;
+    --border: #34313a;
+    --accent: #a48bff;
+  }
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+h1 {
+  margin: 0 0 1.5rem;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 2rem 0 0.75rem;
+}
+
+button {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  background: var(--surface);
+  transition: border-color 0.15s;
+}
+
+.dropzone.dragging {
+  border-color: var(--accent);
+}
+
+.dropzone p {
+  margin: 0.25rem 0;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.error {
+  color: var(--failed);
+  font-size: 0.9rem;
+}
+
+.jobs {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.job {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+}
+
+.job-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.filename {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--queued);
+}
+
+.badge.processing {
+  background: var(--processing);
+}
+
+.badge.done {
+  background: var(--done);
+}
+
+.badge.failed {
+  background: var(--failed);
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 0.75rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.meta dd {
+  margin: 0;
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+.thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.thumbs a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.thumbs img {
+  max-height: 128px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
